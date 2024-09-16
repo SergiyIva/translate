@@ -9,34 +9,8 @@ type Engine = {
   parse: (res: { [key: string]: any }) => string;
 };
 
-type Options = string | { from?: string; to?: string };
-
-declare const translate: {
-  (text: string, opts?: Options): Promise<string>;
-
-  key?: string;
-  engine?: "google" | "deepl" | "libre" | "yandex";
-
-  // More advanced types when tweaking the library
-  keys?: { [name: string]: string };
-  cache?: number;
-  engines?: { [name: string]: Engine };
-
-  Translate({}: {
-    from?: string;
-    to?: string;
-
-    key?: string;
-    engine?: "google" | "deepl" | "libre" | "yandex";
-
-    // More advanced types when tweaking the library
-    keys?: { [name: string]: string };
-    cache?: number;
-    engines?: { [name: string]: Engine };
-  }): typeof translate;
-};
-
-declare const Translate: ({}: {
+type Options = string | TranslateOptions;
+type TranslateOptions = {
   from?: string;
   to?: string;
 
@@ -47,7 +21,17 @@ declare const Translate: ({}: {
   keys?: { [name: string]: string };
   cache?: number;
   engines?: { [name: string]: Engine };
-}) => typeof translate;
+}
 
-export default translate;
-export { Translate };
+declare class Translate {
+  private readonly cache;
+  private readonly options;
+
+  constructor(cache?: any, options?: TranslateOptions)
+
+  public translate(text: string, opts?: Options): Promise<string>;
+
+  private getId(opts: TranslateOptions, text: string): string
+}
+
+export default Translate;

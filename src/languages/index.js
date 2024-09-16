@@ -6,14 +6,14 @@
 
 // ISO-639-2 list is THE SAME as the values of ISO-639-1 (sorted)
 // so we don't need to include both lists!
-import iso from "./iso";
+import iso from "./iso.js";
 const isoKeys = Object.values(iso).sort();
 
 // Extract these with this code (after loading https://www.npmjs.com/package/superdom ) + a lot of manual clean up
 // [...dom.table[1].querySelectorAll('tbody tr')].slice(1).filter(row => !/^\s*$/.test(row.querySelector('td:nth-child(2)').textContent)).map(row =>
 //   `  "${row.querySelector('td:nth-child(3)').textContent.toLowerCase()}": "${row.querySelector('td:nth-child(2)').textContent.toLowerCase()}",`
 // ).join('\n');
-import names from "./names";
+import names from "./names.js";
 
 // Language parser
 //   @name: a string to be parsed

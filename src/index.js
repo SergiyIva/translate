@@ -8,103 +8,99 @@ import engines from "./engines/index.js";
 import languages from "./languages/index.js";
 import axios from "axios";
 
-const getId = (opts, text) => `${opts.url}:${opts.from}:${opts.to}:${opts.engine}:${text}`;
-
-// Main function
-const Translate = function (cache= inMemoryCache, options = {}) {
-  if (!(this instanceof Translate)) {
-    return new Translate(options);
-  }
-
-  const defaults = {
-    from: "en",
-    to: "en",
-    cache: undefined,
-    engine: "google",
-    key: "translate",
-    url: undefined,
-    languages: languages,
-    engines: engines,
-    keys: {},
-  };
-
-  const translate = async (text, opts = {}) => {
-    // Load all of the appropriate options (verbose but fast)
-    // Note: not all of those *should* be documented since some are internal only
-    if (typeof opts === "string") opts = { to: opts };
-    const invalidKey = Object.keys(opts).find(
-      (k) => k !== "from" && k !== "to"
-    );
-    if (invalidKey) {
-      throw new Error(`Invalid option with the name '${invalidKey}'`);
+class Translate {
+    options = {
+        from: "en",
+        to: "en",
+        cache: undefined,
+        engine: "google",
+        key: undefined,
+        url: "translate",
+        languages: languages,
+        engines: engines,
+        keys: {},
     }
-    opts.from = languages(opts.from || translate.from);
-    opts.to = languages(opts.to || translate.to);
-    opts.cache = translate.cache;
-    opts.engine = translate.engine;
-    opts.url = translate.url;
-    opts.id = `${opts.url}:${opts.from}:${opts.to}:${opts.engine}:${opts.text}`;
-    opts.keys = translate.keys || {};
-    for (let name in translate.keys) {
-      // The options has stronger preference than the global value
-      opts.keys[name] = opts.keys[name] || translate.keys[name];
-    }
-    opts.key = opts.key || translate.key || opts.keys[opts.engine];
+    cache
 
-    // Use the desired engine
-    const engine = translate.engines[opts.engine];
-
-    const base = text.split(",").map(t => t.trim()).map(t => t.toLowerCase());
-    const translateObject = base.reduce((acc, cur) => ({ ...acc, [cur]: cur }), {});
-
-    for (const key of base) {
-      const id = getId(opts, key);
-      const cached = await cache.get(id);
-      if (cached) translateObject[key] = cached;
+    constructor(cache = inMemoryCache, options = {}) {
+        this.cache = cache
+        this.options = {
+            ...this.options,
+            ...options,
+        }
     }
 
-    const toTranslate = base.filter(k => k === translateObject[k]);
+    async translate(text, opts = {}) {
+        // Load all of the appropriate options (verbose but fast)
+        // Note: not all of those *should* be documented since some are internal only
+        if (typeof opts === "string") opts = {to: opts};
+        const invalidKey = Object.keys(opts).find(
+            (k) => k !== "from" && k !== "to"
+        );
+        if (invalidKey) {
+            throw new Error(`Invalid option with the name '${invalidKey}'`);
+        }
+        opts.from = languages(opts.from || this.options.from);
+        opts.to = languages(opts.to || this.options.to);
+        opts.cache = this.options.cache;
+        opts.engine = this.options.engine;
+        opts.url = this.options.url;
+        opts.id = `${opts.url}:${opts.from}:${opts.to}:${opts.engine}:${opts.text}`;
+        opts.keys = this.options.keys || {};
+        for (let name in this.options.keys) {
+            // The options has stronger preference than the global value
+            opts.keys[name] = opts.keys[name] || this.options.keys[name];
+        }
+        opts.key = opts.key || this.options.key || opts.keys[opts.engine];
 
-    opts.text = toTranslate.join(", ");
+        // Use the desired engine
+        const engine = this.options.engines[opts.engine];
 
-    if (!toTranslate.length) return Object.values(translateObject).join(", ");
+        const base = text.split(",").map(t => t.trim()).map(t => t.toLowerCase());
+        const translateObject = base.reduce((acc, cur) => ({...acc, [cur]: cur}), {});
 
-    // Target is the same as origin, just return the string
-    if (opts.to === opts.from) {
-      return Promise.resolve(opts.text);
+        for (const key of base) {
+            const id = this.getId(opts, key);
+            const cached = await this.cache.get(id);
+            if (cached) translateObject[key] = cached;
+        }
+
+        const toTranslate = base.filter(k => k === translateObject[k]);
+
+        opts.text = toTranslate.join(", ");
+
+        if (!toTranslate.length) return Object.values(translateObject).join(", ");
+
+        // Target is the same as origin, just return the string
+        if (opts.to === opts.from) {
+            return Promise.resolve(opts.text);
+        }
+
+        if (engine.needkey && !opts.key) {
+            throw new Error(
+                `The engine "${opts.engine}" needs a key, please provide it`
+            );
+        }
+
+        const fetchOpts = engine.fetch(opts);
+        return await axios(...fetchOpts)
+            .then(engine.parse)
+            .then(async (translated) => {
+                const transArr = translated.split(",").map(t => t.trim()).map(t => t.toLowerCase());
+                for (const key of toTranslate) {
+                    const i = toTranslate.indexOf(key);
+                    await this.cache.set(this.getId(opts, key), transArr[i], "EX", 60 * 60 * 24 * 7);
+                    translateObject[key] = transArr[i];
+                }
+
+                return Object.values(translateObject).join(", ");
+            })
+            .then(value => value);
     }
 
-    if (engine.needkey && !opts.key) {
-      throw new Error(
-        `The engine "${opts.engine}" needs a key, please provide it`
-      );
+    getId(opts, text) {
+        return `${opts.url}:${opts.from}:${opts.to}:${opts.engine}:${text}`
     }
+}
 
-    const fetchOpts = engine.fetch(opts);
-    return await axios(...fetchOpts)
-        .then(engine.parse)
-        .then(async (translated) => {
-          const transArr = translated.split(",").map(t => t.trim()).map(t => t.toLowerCase());
-          for (const key of toTranslate) {
-            const i = toTranslate.indexOf(key);
-            await cache.set(getId(opts, key), transArr[i], "EX", 60 * 60 * 24 * 7);
-            translateObject[key] = transArr[i];
-          }
-
-          return Object.values(translateObject).join(", ");
-        })
-        .then(value => value);
-  };
-
-  for (let key in defaults) {
-    translate[key] =
-      typeof options[key] === "undefined" ? defaults[key] : options[key];
-  }
-  return translate;
-};
-
-// Small hack needed for Webpack/Babel: https://github.com/webpack/webpack/issues/706
-const exp = new Translate();
-exp.Translate = Translate;
-export default exp;
-export { Translate };
+export default Translate;

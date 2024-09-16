@@ -1,6 +1,6 @@
 {
-  "name": "translate",
-  "version": "1.0.0",
+  "name": "@sergiyiva/translate",
+  "version": "1.0.4",
   "description": "Translate text to different languages on node.js and the browser",
   "author": "Francisco Presencia <public@francisco.io> (https://francisco.io/)",
   "license": "MIT",
@@ -31,6 +31,7 @@
     "check-dts": "^0.7.1",
     "dotenv": "^16.0.3",
     "fetch-mock": "^9.11.0",
+    "ioredis": "^5.4.1",
     "jest": "^29.5.0",
     "node-fetch": "^2.6.9",
     "rollup": "^3.20.2",
