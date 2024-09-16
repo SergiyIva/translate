@@ -10,7 +10,7 @@ yarn-error.log*
 
 # Mac temporal file
 .DS_Store
-
+.idea
 # SASS Cache
 .sass-cache
 

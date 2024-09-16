@@ -3,7 +3,7 @@ function Cache() {
   var _cache = Object.create(null);
   var _size = 0;
 
-  this.set = function (key, value, time) {
+  this.set = function (key, value, str, time) {
     if (
       typeof time !== "undefined" &&
       (typeof time !== "number" || isNaN(time) || time <= 0)

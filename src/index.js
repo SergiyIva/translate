@@ -2,13 +2,16 @@
 // Translate text into different languages;
 
 // Cache the different translations to avoid resending requests
-import cache from "./cache.js";
+import inMemoryCache from "./cache.js";
 import engines from "./engines/index.js";
 // Load a language parser to allow for more flexibility in the language choice
 import languages from "./languages/index.js";
+import axios from "axios";
+
+const getId = (opts, text) => `${opts.url}:${opts.from}:${opts.to}:${opts.engine}:${text}`;
 
 // Main function
-const Translate = function (options = {}) {
+const Translate = function (cache= inMemoryCache, options = {}) {
   if (!(this instanceof Translate)) {
     return new Translate(options);
   }
@@ -18,7 +21,7 @@ const Translate = function (options = {}) {
     to: "en",
     cache: undefined,
     engine: "google",
-    key: undefined,
+    key: "translate",
     url: undefined,
     languages: languages,
     engines: engines,
@@ -35,7 +38,6 @@ const Translate = function (options = {}) {
     if (invalidKey) {
       throw new Error(`Invalid option with the name '${invalidKey}'`);
     }
-    opts.text = text;
     opts.from = languages(opts.from || translate.from);
     opts.to = languages(opts.to || translate.to);
     opts.cache = translate.cache;
@@ -52,9 +54,20 @@ const Translate = function (options = {}) {
     // Use the desired engine
     const engine = translate.engines[opts.engine];
 
-    // If it is cached return ASAP
-    const cached = cache.get(opts.id);
-    if (cached) return Promise.resolve(cached);
+    const base = text.split(",").map(t => t.trim()).map(t => t.toLowerCase());
+    const translateObject = base.reduce((acc, cur) => ({ ...acc, [cur]: cur }), {});
+
+    for (const key of base) {
+      const id = getId(opts, key);
+      const cached = await cache.get(id);
+      if (cached) translateObject[key] = cached;
+    }
+
+    const toTranslate = base.filter(k => k === translateObject[k]);
+
+    opts.text = toTranslate.join(", ");
+
+    if (!toTranslate.length) return Object.values(translateObject).join(", ");
 
     // Target is the same as origin, just return the string
     if (opts.to === opts.from) {
@@ -68,9 +81,19 @@ const Translate = function (options = {}) {
     }
 
     const fetchOpts = engine.fetch(opts);
-    return fetch(...fetchOpts)
-      .then(engine.parse)
-      .then((translated) => cache.set(opts.id, translated, opts.cache));
+    return await axios(...fetchOpts)
+        .then(engine.parse)
+        .then(async (translated) => {
+          const transArr = translated.split(",").map(t => t.trim()).map(t => t.toLowerCase());
+          for (const key of toTranslate) {
+            const i = toTranslate.indexOf(key);
+            await cache.set(getId(opts, key), transArr[i], "EX", 60 * 60 * 24 * 7);
+            translateObject[key] = transArr[i];
+          }
+
+          return Object.values(translateObject).join(", ");
+        })
+        .then(value => value);
   };
 
   for (let key in defaults) {
