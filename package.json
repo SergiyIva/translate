@@ -1,12 +1,13 @@
 {
   "name": "@sergiyiva/translate",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "description": "Translate text to different languages on node.js and the browser",
   "author": "Francisco Presencia <public@francisco.io> (https://francisco.io/)",
   "license": "MIT",
   "scripts": {
     "start": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "build": "rollup src/index.js --name translate --output.format esm | terser --compress --mangle -o index.min.js",
+    "buildcjs": "rollup src/index.js --name translate --output.format cjs | terser --compress --mangle -o index.min.cjs",
     "size": "gzip -c index.min.js | wc -c && echo 'bytes' # Only for Unix",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --collectCoverageFrom=src/**/*.js && npx check-dts",
     "watch": "nodemon --exec \"npm run build && npm test && npm run gzip\" --watch src --watch test --watch webpack.config.js --watch package.json",
@@ -24,8 +25,13 @@
   "type": "module",
   "main": "index.min.js",
   "types": "index.d.ts",
+  "exports": {
+    "import": "./index.min.js",
+    "require": "./index.min.cjs"
+  },
   "files": [
-    "index.d.ts"
+    "index.d.ts",
+    "index.min.cjs"
   ],
   "devDependencies": {
     "check-dts": "^0.7.1",
