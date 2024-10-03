@@ -19,8 +19,10 @@ class Translate {
         languages: languages,
         engines: engines,
         keys: {},
+        isExInCache: true,
     }
     cache
+    cacheParams
 
     constructor(cache = inMemoryCache, options = {}) {
         this.cache = cache
@@ -28,6 +30,7 @@ class Translate {
             ...this.options,
             ...options,
         }
+        this.cacheParams = this.options.isExInCache ? ["EX", 60 * 60 * 24 * 7] : [60 * 60 * 24 * 7]
     }
 
     async translate(text, opts = {}) {
@@ -89,7 +92,7 @@ class Translate {
                 const transArr = translated.split(",").map(t => t.trim()).map(t => t.toLowerCase());
                 for (const key of toTranslate) {
                     const i = toTranslate.indexOf(key);
-                    await this.cache.set(this.getId(opts, key), transArr[i], "EX", 60 * 60 * 24 * 7);
+                    await this.cache.set(this.getId(opts, key), transArr[i], ...this.cacheParams);
                     translateObject[key] = transArr[i];
                 }
 

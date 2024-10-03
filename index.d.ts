@@ -21,10 +21,13 @@ type TranslateOptions = {
   keys?: { [name: string]: string };
   cache?: number;
   engines?: { [name: string]: Engine };
+
+  isExInCache: boolean,
 }
 
 declare class Translate {
   private readonly cache;
+  private readonly cacheParams;
   private readonly options;
 
   constructor(cache?: any, options?: TranslateOptions)

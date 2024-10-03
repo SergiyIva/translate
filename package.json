@@ -1,6 +1,6 @@
 {
   "name": "@sergiyiva/translate",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "description": "Translate text to different languages on node.js and the browser",
   "author": "Francisco Presencia <public@francisco.io> (https://francisco.io/)",
   "license": "MIT",
