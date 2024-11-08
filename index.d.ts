@@ -22,7 +22,7 @@ type TranslateOptions = {
   cache?: number;
   engines?: { [name: string]: Engine };
 
-  isExInCache: boolean,
+  isExInCache?: boolean,
 }
 
 declare class Translate {
